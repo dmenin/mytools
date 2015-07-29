@@ -1,0 +1,90 @@
+#Used to fetch live stream data from twitter.
+#To get credentials: "https://dev.twitter.com/apps"
+
+import oauth2 as oauth
+import urllib2 as urllib
+import json
+from pprint import pprint
+
+api_key = "XXXXX"
+api_secret = "XXXXX"
+access_token_key = "XXXXX-XXXXX"
+access_token_secret = "XXXXX"
+
+_debug = 0
+
+oauth_token    = oauth.Token(key=access_token_key, secret=access_token_secret)
+oauth_consumer = oauth.Consumer(key=api_key, secret=api_secret)
+
+signature_method_hmac_sha1 = oauth.SignatureMethod_HMAC_SHA1()
+
+http_method = "GET"
+
+
+http_handler  = urllib.HTTPHandler(debuglevel=_debug)
+https_handler = urllib.HTTPSHandler(debuglevel=_debug)
+
+def twitter_track(url, method, parameters):
+    req = oauth.Request.from_consumer_and_token(oauth_consumer,
+                                             token=oauth_token,
+                                             http_method=http_method,
+                                             http_url=url,
+                                             parameters=parameters)
+
+    req.sign_request(signature_method_hmac_sha1, oauth_consumer, oauth_token)
+    headers = req.to_header()
+
+    if http_method == "POST":
+        encoded_post_data = req.to_postdata()
+    else:
+        encoded_post_data = None
+    url = req.to_url()
+
+    opener = urllib.OpenerDirector()
+    opener.add_handler(http_handler)
+    opener.add_handler(https_handler)
+    response = opener.open(url, encoded_post_data)
+
+    return response
+
+
+def getData(mode, topn):
+    parameters = []
+
+    #returns an infinite stream of tweets, hence the need to ^C to break out of the for loop
+    #use the first URL to get all sort of tweets
+    if mode=='live track':
+        #url = "https://stream.twitter.com/1/statuses/sample.json"
+        url = "https://stream.twitter.com/1.1/statuses/filter.json?track=Microsoft" #track one subject
+        response = twitter_track(url, "GET", parameters)
+        for line in response:
+            text = line.strip()
+            #line is a string so Im doing some very basic (and error prone) string manipulation - room for improvement here
+            s= str.find(text,"text")
+            e =str.find(text,"source")
+            print text[s+7:e-3]
+            print ""
+
+
+    elif mode=="topN":#will return TOP N tweets on the subject
+        tweet_count = '&count='+str(topn)    # tweets/page
+        queryparams = '?q=Microsoft&lang=en'+tweet_count
+        url = "https://api.twitter.com/1.1/search/tweets.json" + queryparams
+
+        #Ignoring the "parameters" variable - quite easy to use the URL
+        response = twitter_track(url, "GET", parameters)
+        data = json.load(response)#contains all N tweets
+        #pprint(data) # data is a dictionary
+        for tweet in data["statuses"]:
+            print tweet["text"]
+
+#TO DO:
+#search term is hardcoded - parametrize it
+#clean unnecessary characters, ex: URLS are coming like: http:\/\/t.co\/RC1Z7IaMu5
+if __name__ == '__main__':
+    #Options:
+    #live track: Track Function where all tweets or a single search criteria can be tracked in real-time
+    #            Tweets do not repeat, second parameter ignored
+    #topN: Displays last N tweets on the subject
+  getData("live track",10)
+

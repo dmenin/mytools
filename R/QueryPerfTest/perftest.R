@@ -24,6 +24,7 @@ a <-data.table(a)
 
 #save RDS each how many runs?(in case something fails - out of memory or something)
 savecount=10
+runcount=0
 
 #object where the metrics are stored
 if (exists("my_df")){
@@ -31,6 +32,7 @@ if (exists("my_df")){
 }
 
 for (i in 1:100 ) {
+  runcount=runcount+1
   #get a random value from the "a" dataset that contains all possible values to be used on the where clause
   sample_snap = sample(x = min(a$random_where):max(a$random_where), size = 1)
   
@@ -65,13 +67,15 @@ for (i in 1:100 ) {
     my_df<-rbind(my_df,data.frame(begin_,sample_snap,dur_a, dur_b, dur_c,end_))
   }
   
-  if (i==savecount){
+  if (runcount==savecount){
     name=gsub("[ ]","_",end_) 
     name=gsub("[:]","_",name) 
     saveRDS(my_df, name)
-    savecount = 0
+    runcount = 0
   }
 }  
 
-saveRDS(my_df, "final")
-
+name=gsub("[ ]","_",end_) 
+name=gsub("[:]","_",name) 
+name=paste(name,"final",sep="_")
+saveRDS(my_df, name)

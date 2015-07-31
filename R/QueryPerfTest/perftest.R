@@ -34,7 +34,7 @@ if (exists("my_df")){
 for (i in 1:100 ) {
   runcount=runcount+1
   #get a random value from the "a" dataset that contains all possible values to be used on the where clause
-  sample_snap = sample(x = min(a$random_where):max(a$random_where), size = 1)
+  sample_snap = random_where[sample(.N,1)]
   
   
   a = paste(query_1, sample_snap, sep="")

@@ -6,10 +6,11 @@ import urllib2 as urllib
 import json
 from pprint import pprint
 
-api_key = "XXXXX"
-api_secret = "XXXXX"
-access_token_key = "XXXXX-XXXXX"
-access_token_secret = "XXXXX"
+#This is not on Git. Substitute the 3 lines bellow with your key
+from KeyHolder import KeyHolderMain
+k = KeyHolderMain()
+api_key, api_secret, access_token_key, access_token_secret = k.getAPiKeys()
+
 
 _debug = 0
 

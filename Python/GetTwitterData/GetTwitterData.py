@@ -73,6 +73,7 @@ if __name__ == '__main__':
     #live track: Track Function where all tweets or a single search criteria can be tracked in real-time
     #            Tweets do not repeat, second parameter ignored
     #topN: Displays last N tweets on the subject#
+	
 	if len(sys.argv) ==1:
 		print "Please Inform the search term. Exiting..."
 		sys.exit()

@@ -71,17 +71,184 @@ plot(pc, type='l')
 head(df[2:6])
 
 --------------------------------
-df <- read.csv ("C:/git/mytools/learning/PCA/cleaned.csv")  
-prcomp(df[,2:6],center = TRUE,scale = TRUE) 
+setwd("C:/git/mytools/learning/PCA/")    #
+df <- read.csv ("cleaned.csv")#
+head(df)#
 
 
-df$completion_male <- ((df$completion_male - mean(df$completion_male)) / sd(df$completion_male))
-df$completion_female <- ((df$completion_female - mean(df$completion_female)) / sd(df$completion_female))
-df$income_per_person <- ((df$income_per_person - mean(df$income_per_person)) / sd(df$income_per_person))
-df$employment <- ((df$employment - mean(df$employment)) / sd(df$employment))
-df$life_expectancy <- ((df$life_expectancy - mean(df$life_expectancy)) / sd(df$life_expectancy))
-head(df)
-prcomp(df[,2:6],center = FALSE,scale = FALSE) #or any other combination of center\scaling
+prcomp(df[,2:6],center = TRUE,scale = TRUE) #
+
+
+  df$completion_male <- ((df$completion_male - mean(df$completion_male)) / sd(df$completion_male))#
+  df$completion_female <- ((df$completion_female - mean(df$completion_female)) / sd(df$completion_female))#
+  df$income_per_person <- ((df$income_per_person - mean(df$income_per_person)) / sd(df$income_per_person))#
+  df$employment <- ((df$employment - mean(df$employment)) / sd(df$employment))#
+  df$life_expectancy <- ((df$life_expectancy - mean(df$life_expectancy)) / sd(df$life_expectancy))#
+  head(df)#
+  prcomp(df[,2:6],center = FALSE,scale = FALSE) #
+  
+
+
+pca <- prcomp(df[,2:6],center = FALSE,scale = FALSE)#
+#running prcomp(df[,2:6],center = TRUE,scale = TRUE) from the original data frame would produce the same result
+
+summary(pca)
+pca[1] #$sdev
+pca[2] #$rotation
+pca[3] #$center ?
+pca[4] #$scale  ?
+pca[5] # transformed data
+
+this in the element loadings.
+
+x  
+
+
+foo<- as.data.frame(components$rotation)#
+foo2<- as.data.frame(pca$x[1:5,])#
+
+?prcomp
+
+
+df[1,2:6]
+
+
+pca1<-components$rotation[,1]
+pca2<-components$rotation[,2]
+
+
+as.data.frame(pca$x[1:5,])
+
+
+summary(pca)
+
+components <- pca[2]
+
+#Components are orthogonal to each other (dot product = 0)
+components$rotation[,3] %*% components$rotation[,1]
+
+#Components are normaled to have length 1.
+sum(components$rotation[,1]**2)
+
+
+
+
+#lloking at 1st and econd component only
+pca1<-components$rotation[,1]
+pca2<-components$rotation[,2]
+
+foo<- as.data.frame(t(components$rotation[,1:2]))
+
+plot(pca$x[,1],  pca$x[,2])
+arrow_size=2
+arrows(0,0,pca1[1]* arrow_size,pca2[1]* arrow_size) 
+arrows(0,0,pca1[2]* arrow_size,pca2[2]* arrow_size)
+arrows(0,0,pca1[3]* arrow_size,pca2[3]* arrow_size)
+arrows(0,0,pca1[4]* arrow_size,pca2[4]* arrow_size)
+text(pca1[4]* arrow_size,pca2[4]* arrow_size, row.names(pca$rotation)[4])
+arrows(0,0,pca1[5]* arrow_size,pca2[5]* arrow_size)
+
+foo<-pca$rotation
+row.names(pca1[1])
+
+
+
+
+
+----------------caret
+require(caret)
+trans = 
+carret_pca<- preProcess(df[,2:6], method=c( "pca"))
+
+
+carret_pca$rotation  #PCA needed 4 components to capture 95 percent of the variance - show it on summary(pca)
+
+PC = predict(trans, iris[,1:4])
+
+--------------
+
+
+components$rotation
+
+xyNorm <- cbind(((df$completion_male - mean(df$completion_male)) / sd(df$completion_male)), 
+                ((df$completion_female - mean(df$completion_female)) / sd(df$completion_female)),
+                ((df$income_per_person - mean(df$income_per_person)) / sd(df$income_per_person)),
+                ((df$employment - mean(df$employment)) / sd(df$employment)),
+                ((df$life_expectancy - mean(df$life_expectancy)) / sd(df$life_expectancy))
+)
+
+
+xyNorm <- cbind((df$completion_male), 
+                (df$completion_female),
+                (df$income_per_person),
+                (df$employment),
+                (df$life_expectancy)
+)
+
+
+xyCov <- cov(xyNorm)
+eigenValues <- eigen(xyCov)$values
+eigenVectors <- eigen(xyCov)$vectors # contains the pca[2] object
+
+
+xyNorm <- cbind(((df2$completion_male - mean(df2$completion_male)) ), 
+                ((df2$completion_female - mean(df2$completion_female)) ),
+                ((df2$income_per_person - mean(df2$income_per_person)) ),
+                ((df2$employment - mean(df2$employment)) ),
+                ((df2$life_expectancy - mean(df2$life_expectancy)) )
+)
+
+
+
+
+----------------------------DIF with LR
+df2 <- read.csv ("cleaned.csv")#
+plot(df2[,2:6])
+#predict the third feaure using the second
+plot (df2[,2], df2[,3])
+fit_x<- lm(df2[,3] ~ df2[,2]) 
+lines(df2[,2], predict(fit_x), col="red")
+
+
+xyCov <- cov(xyNorm)
+eigenValues <- eigen(xyCov)$values
+eigenVectors <- eigen(xyCov)$vectors # contains the pca[2] object
+plot(xyNorm)
+lines(xyNorm[x], eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[x])
+lines(xyNorm[x], eigenVectors[2,2]/eigenVectors[1,2] * xyNorm[x])
+
+
+
+plot(df2[,2],df2[,3])
+
+
+
+plot(xyNorm)
+lines(xyNorm[x], eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[x])
+lines(xyNorm[x], eigenVectors[2,2]/eigenVectors[1,2] * xyNorm[x])
+
+
+
+x <- 1:105
+
+
+lines(xyNorm[x], pca[2]$rotation[2,1]/pca[2]$rotation[1,1] * xyNorm[x])
+lines(xyNorm[x], pca[2]$rotation[2,2]/pca[2]$rotation[1,2] * xyNorm[x])
+
+
+
+pca[2]$rotation[2,1]
+
+
+
+plot(xy)
+lines(x, (eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[x]) + mean(y))
+# that looks right. line through the middle as expected
+
+lines(x, predict(yx.lm), col="red")
+lines(predict(xy.lm), y, col="blue")
+
+
 
 
 

@@ -75,7 +75,7 @@ setwd("C:/git/mytools/learning/PCA/")    #
 df <- read.csv ("cleaned.csv")#
 head(df)#
 
-
+?prcomp
 prcomp(df[,2:6],center = TRUE,scale = TRUE) #
 
 
@@ -90,6 +90,11 @@ prcomp(df[,2:6],center = TRUE,scale = TRUE) #
 
 
 pca <- prcomp(df[,2:6],center = FALSE,scale = FALSE)#
+
+summary(pca)
+prcomp(df[,2:6],center = FALSE,scale = FALSE, tol=0.5)#
+
+
 #running prcomp(df[,2:6],center = TRUE,scale = TRUE) from the original data frame would produce the same result
 
 summary(pca)
@@ -112,7 +117,7 @@ foo2<- as.data.frame(pca$x[1:5,])#
 
 df[1,2:6]
 
-
+components <- pca[2]
 pca1<-components$rotation[,1]
 pca2<-components$rotation[,2]
 
@@ -134,12 +139,12 @@ sum(components$rotation[,1]**2)
 
 
 #lloking at 1st and econd component only
-pca1<-components$rotation[,1]
-pca2<-components$rotation[,2]
+pca1<-components$rotation[,4]
+pca2<-components$rotation[,5]
 
-foo<- as.data.frame(t(components$rotation[,1:2]))
 
-plot(pca$x[,1],  pca$x[,2])
+
+plot(pca$x[,4],  pca$x[,5])
 arrow_size=2
 arrows(0,0,pca1[1]* arrow_size,pca2[1]* arrow_size) 
 arrows(0,0,pca1[2]* arrow_size,pca2[2]* arrow_size)
@@ -151,21 +156,6 @@ arrows(0,0,pca1[5]* arrow_size,pca2[5]* arrow_size)
 foo<-pca$rotation
 row.names(pca1[1])
 
-
-
-
-
-----------------caret
-require(caret)
-trans = 
-carret_pca<- preProcess(df[,2:6], method=c( "pca"))
-
-
-carret_pca$rotation  #PCA needed 4 components to capture 95 percent of the variance - show it on summary(pca)
-
-PC = predict(trans, iris[,1:4])
-
---------------
 
 
 components$rotation
@@ -191,6 +181,7 @@ eigenValues <- eigen(xyCov)$values
 eigenVectors <- eigen(xyCov)$vectors # contains the pca[2] object
 
 
+
 xyNorm <- cbind(((df2$completion_male - mean(df2$completion_male)) ), 
                 ((df2$completion_female - mean(df2$completion_female)) ),
                 ((df2$income_per_person - mean(df2$income_per_person)) ),
@@ -203,52 +194,74 @@ xyNorm <- cbind(((df2$completion_male - mean(df2$completion_male)) ),
 
 ----------------------------DIF with LR
 df2 <- read.csv ("cleaned.csv")#
-plot(df2[,2:6])
-#predict the third feaure using the second
-plot (df2[,2], df2[,3])
-fit_x<- lm(df2[,3] ~ df2[,2]) 
-lines(df2[,2], predict(fit_x), col="red")
+df2 <- df2[,2:3]
+df2 <- df2[order(df2$completion_male),] 
+x =df2[,1]
+y =df2[,2]
+
+
+plot(x,y)
+yx.lm <- lm(y ~ x)
+lines(x, predict(yx.lm), col="red")
+
+
+xyNorm <- cbind(x=x-mean(x), y=y-mean(y))
+plot(xyNorm)
 
 
 xyCov <- cov(xyNorm)
 eigenValues <- eigen(xyCov)$values
-eigenVectors <- eigen(xyCov)$vectors # contains the pca[2] object
-plot(xyNorm)
-lines(xyNorm[x], eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[x])
-lines(xyNorm[x], eigenVectors[2,2]/eigenVectors[1,2] * xyNorm[x])
+eigenVectors <- eigen(xyCov)$vectors
+plot(xyNorm)#, ylim=c(-60,60), xlim=c(-60,60))
 
 
 
-plot(df2[,2],df2[,3])
+
+lines(xyNorm[,1], eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[,1])
+lines(xyNorm[,2], eigenVectors[2,2]/eigenVectors[1,2] * xyNorm[,2])
+
+
+plot(x,y)
+lines(x, (eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[,1]) + mean(y))
 
 
 
-plot(xyNorm)
-lines(xyNorm[x], eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[x])
-lines(xyNorm[x], eigenVectors[2,2]/eigenVectors[1,2] * xyNorm[x])
-
-
-
-x <- 1:105
-
-
-lines(xyNorm[x], pca[2]$rotation[2,1]/pca[2]$rotation[1,1] * xyNorm[x])
-lines(xyNorm[x], pca[2]$rotation[2,2]/pca[2]$rotation[1,2] * xyNorm[x])
-
-
-
-pca[2]$rotation[2,1]
-
-
-
-plot(xy)
-lines(x, (eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[x]) + mean(y))
-# that looks right. line through the middle as expected
-
+# what if we bring back our other two regressions?
 lines(x, predict(yx.lm), col="red")
-lines(predict(xy.lm), y, col="blue")
+
+df
+
+----------------------------
+df2 <- read.csv ("cleaned.csv")#
+df2 <- df2[,2:3]
+df2 <- df2[order(df2$completion_male),] 
+x =df2[,1]
+y =df2[,2]
+
+
+plot (x,y)
+fit_x<- lm(y ~ x)
+lines(x, predict(fit_x), col="red")
+
+
+xyNorm <- cbind(x=df2[,1]-mean(df2[,1]), y=df2[,2]-mean(df2[,2]))
+plot(xyNorm)
+
+
+pca<-prcomp(xyNorm,center = FALSE,scale = FALSE) #
+summary(pca)
+pca[2]
+
+lines(xyNorm[,1],  pca[2]$rotation[2,1]/pca[2]$rotation[1,1]  * xyNorm[,1])
+lines(xyNorm[,2], pca[2]$rotation[2,2]/pca[2]$rotation[1,2] * xyNorm[,2])
 
 
 
+plot(x,y)
+lines(x, (eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[,1]) + mean(y))
 
+
+
+# what if we bring back our other two regressions?
+lines(x, predict(yx.lm), col="red")
 

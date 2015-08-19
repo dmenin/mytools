@@ -72,12 +72,12 @@ lines(x, (eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[,1]) + mean(y))
 # what if we bring back our other two regressions?
 lines(x, predict(yx.lm), col="red")
 
-
+head(df2)
 
 df
-
-
-df2 <- read.csv ("cleaned.csv")#
+-----------------------------------------------------------------------
+setwd("C:/git/mytools/learning/PCA/")  
+df2 <- read.csv ("cleaned.csv")
 df2 <- df2[,c("income_per_person", "life_expectancy")]
 df2 <- df2[order(df2$income_per_person),] 
 x =df2[,1]
@@ -88,24 +88,31 @@ plot (x,y)
 fit_x<- lm(y ~ x)
 lines(x, predict(fit_x), col="red")
 
+#pca<-prcomp(df2,center = TRUE,scale = FALSE)
+#plot(x,y)
+#lines(x, pca[2]$rotation[2,1]/pca[2]$rotation[1,1]  * x)
+
 
 xyNorm <- cbind(x=df2[,1]-mean(df2[,1]), y=df2[,2]-mean(df2[,2]))
-plot(xyNorm)
+  #xyCov <- cov(xyNorm)
+  #eigenValues <- eigen(xyCov)$values
+  #eigenVectors <- eigen(xyCov)$vectors
 
-
+plot(xyNorm, xlim=c(-5,5), ylim = c(-30,20))
 pca<-prcomp(xyNorm,center = FALSE,scale = FALSE) #
-summary(pca)
-pca[2]
+#summary(pca)
+#pca[2]
 
-lines(xyNorm[,1], pca[2]$rotation[2,1]/pca[2]$rotation[1,1]  * xyNorm[,1])
-lines(xyNorm[,2], pca[2]$rotation[2,2]/pca[2]$rotation[1,2] * xyNorm[,2])
+lines(xyNorm[,1], pca[2]$rotation[2,1]/pca[2]$rotation[1,1] * xyNorm[,1])
+lines(xyNorm[,1], pca[2]$rotation[2,2]/pca[2]$rotation[1,2] * xyNorm[,1])
 
 
 
 plot(x,y)
 lines(x, (eigenVectors[2,1]/eigenVectors[1,1] * xyNorm[,1]) + mean(y))
-
-
-
-# what if we bring back our other two regressions?
 lines(x, predict(fit_x), col="red")
+
+
+
+
+----------------------------------------------

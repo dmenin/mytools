@@ -144,7 +144,10 @@ pca2<-components$rotation[,5]
 
 
 
-plot(pca$x[,4],  pca$x[,5])
+pca1<-components$rotation[,1]
+pca2<-components$rotation[,2]
+
+plot(pca$x[,1],  pca$x[,2])
 arrow_size=2
 arrows(0,0,pca1[1]* arrow_size,pca2[1]* arrow_size) 
 arrows(0,0,pca1[2]* arrow_size,pca2[2]* arrow_size)
@@ -152,6 +155,7 @@ arrows(0,0,pca1[3]* arrow_size,pca2[3]* arrow_size)
 arrows(0,0,pca1[4]* arrow_size,pca2[4]* arrow_size)
 text(pca1[4]* arrow_size,pca2[4]* arrow_size, row.names(pca$rotation)[4])
 arrows(0,0,pca1[5]* arrow_size,pca2[5]* arrow_size)
+
 
 foo<-pca$rotation
 row.names(pca1[1])

@@ -35,6 +35,8 @@ plot(fcast, xlab="City (mpg)", ylab="Carbon footprint (tons per year)")
 
 
 #4.6 Statistical inference
+# testing whether the predictor variable x has had an identifiable effect on y (explore whether there is enough evidence to show that x and y are related.)
+
 
 # If x and y are unrelated, then the slope parameter ??1=0. So we can construct a test to see if it is plausible that ??1=0 given the observed data.
 #there is no relationship between x and y. This is called the "null hypothesis" and is stated as
@@ -47,5 +49,12 @@ summary( lm(mpg ~ ., data=foo))
 foo$extravariable <- foo$mpg/2
 summary( lm(mpg ~ ., data=foo))
 #rever of inal sobre Confidence intervals
+
+
+#testar se com intercept 0, tem um p-value alto
+#There are two other P-values provided in the above output. The P-value corresponding to the intercept is also <2×10???16; this P-value is usually not of great interest --- it is a test on whether the intercept parameter is zero or not
+
+
+
 
 

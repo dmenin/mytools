@@ -8,3 +8,4 @@ ReadMe
 
 * R:
   * QueryPerfTest: uses ODBC to run different queries against a database and compare the run time
+  * ParallelReadWrite: spawn 2 process (two different R sessions), one to parallel insert data into a database while the second uses parallel reads, to test performance\parallelism impact

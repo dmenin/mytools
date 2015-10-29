@@ -3,8 +3,9 @@ ReadMe
 
 * Python:
   * GetTwitterData: queries twitter API (https://dmenin.wordpress.com/2015/07/29/twitter-data-analysis/)
-  * SentimentAnalysis: analyses a text fle for sentiment (https://dmenin.wordpress.com/2015/07/29/twitter-data-analysis/)
+  * SentimentAnalysis: analyses a text file for sentiment (https://dmenin.wordpress.com/2015/07/29/twitter-data-analysis/)
   * WordCount: counts words on a particular file (run without parameters to see full list of options)
+  * TableauDynamicParameters: Injects parameters into a tableau workbook
 
 * R:
   * QueryPerfTest: uses ODBC to run different queries against a database and compare the run time

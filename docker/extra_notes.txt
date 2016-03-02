@@ -1,0 +1,118 @@
+https://docs.docker.com/windows/
+run with admin privileges. If Virual box already intalled may have problems. Uninstall it
+
+
+docker version
+
+docker images
+To detach the tty without exiting the shell, use the escape sequence Ctrl+p + Ctrl+q.
+$ docker run docker/whalesay cowsay boo-boo
+
+
+:q
+
+docker build -t docker-whale .
+
+
+
+PUSH:
+docker tag db7d1d6ef952 dmenin/docker-whale:latest
+docker login --username=dmenin --email=dmenin@gmail.com
+docker push dmenin/docker-whale
+
+
+DELETE AND PULL:
+docker rmi -f db7d1d6ef952
+docker run dmenin/docker-whale
+
+
+
+docker-machine start docker2
+eval $(docker-machine env docker2)
+docker pull kaggle/python
+
+
+
+
+list only folders:
+find . -maxdepth 1 -type d
+ls -d */
+
+
+
+-i connects STDIN on the container
+-t gets a pseudo-terminal
+
+
+
+CTRL + P + Q exits the container withou stoping it
+docker ps - shows  running containers
+    add -a to include the onese stoped
+
+
+attach back to it with
+docker attach --sig-proxy=false 973b0cce1396
+
+
+
+
+run containers in the background (deatached mode)
+docker run -d centos:7 ping 127.0.0.1 -c 100 (returns the container's long id)
+docker logs 9b5a5edd6148 (short id for the container)
+docker logs -f 9b5a5edd6148 (output as its current running)
+
+
+
+
+tomcat server: 
+docker run -d -P tomcat:7 (P for port matching)
+
+http://192.168.99.100:32768/
+
+
+docker run -it ubuntu:14.04 bash
+curl 127.0.0.1 --program not installed, wont work
+apt-get install -y curl -adding program to the container
+exit
+
+commit it to an image
+docker ps -a (get the short name) 
+docker commit 69b5a809e689 dmenin/myubuntu:1.0
+
+run the image:
+docker run -it dmenin/myubuntu:1.0 bash
+which curl -> check that the program is there
+
+
+
+
+
+mkdir test
+cd test
+vi Dockerfile
+
+	FROM ubuntu:14.04
+	RUN apt-get update
+	RUN apt-get install -y curl
+	RUN apt-get install -y vim
+
+	or
+
+	RUN apt-get update && apt-get install -y curl \ vim
+
+
+docker build -t dmenin/testimage:1.0 .
+(last dot specifies the current directory as the context of the build)
+
+Look at CMD and ENTRYPOINT on image build to run commands everytime the container is initialized
+
+-------------------------
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,22 @@
+CONTAINER=KagglePythonContainer
+
+RUNNING=$(docker inspect -f {{.State.Running}} KagglePythonContainer 2> /dev/null)
+
+if [ "$RUNNING" == "" ]; then  
+	echo "$CONTAINER does not exist - Creating"
+	(sleep 3 && start "http://$(docker-machine ip docker2):8888")&	  
+	docker run -d -v $PWD:/tmp/dockerwd -w=/tmp/dockerwd -p 8888:8888 --name KagglePythonContainer -it kaggle/python jupyter notebook --no-browser --ip="0.0.0.0" --notebook-dir=/tmp/dockerwd
+	exit
+fi
+
+
+if [ "$RUNNING" == "true" ]; then  
+	echo "Container already running"
+else
+	echo "Starting Container" 	
+	docker start KagglePythonContainer	
+fi 
+
+#Launch URL
+start "http://$(docker-machine ip docker2):8888"  
+

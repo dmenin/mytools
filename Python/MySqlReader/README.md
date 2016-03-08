@@ -1,5 +1,8 @@
 MySQLReader
 ===================
+Developed with:
+Python 2.7.11 |Anaconda 2.5.0 (64-bit)| (default, Jan 29 2016, 14:26:21) [MSC v.1500 64 bit (AMD64)]
+
 
 Interface to read files into DB table and run queries on it
 

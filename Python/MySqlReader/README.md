@@ -15,7 +15,7 @@ Interface to read files into DB table and run queries on it
 
 Output:
 
-
+```
 import MySqlReader as reader
 
 reader.load_db_tables()
@@ -34,3 +34,4 @@ Out[46]:
 1         2       Paul
 2         3       Mary
 3         4       karl
+```

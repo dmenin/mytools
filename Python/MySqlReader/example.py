@@ -1,15 +1,25 @@
-import MySqlReader as reader
+from MySqlReader import MySqlReader 
 
-reader.load_db_tables()
+r = MySqlReader()
+r.load_db_tables()
+
+
 
 q = """
 SELECT r.*, p.personname
 FROM orders r join persons p on r.personid = p.personid
 LIMIT 10;"""
-  
 
-persondf = reader.run_query(q)
-
-reader.delete_db_file()
-
+persondf = r.run_query(q)
 print persondf 
+
+
+q = """
+select Personid, sum(amount)
+from orders
+group by PersonId
+"""
+r.run_query(q)
+
+
+r.delete_db_file()

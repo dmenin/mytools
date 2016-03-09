@@ -16,22 +16,35 @@ Interface to read files into DB table and run queries on it
 Output:
 
 ```
-import MySqlReader as reader
+from MySqlReader import MySqlReader 
 
-reader.load_db_tables()
+r = MySqlReader()
+r.load_db_tables()
+
+
+q = """
+SELECT r.*, p.personname
+FROM orders r join persons p on r.personid = p.personid
+LIMIT 10;"""
+
+persondf = r.run_query(q)
+print persondf 
+
+
+q = """
+select Personid, sum(amount)
+from orders
+group by PersonId
+"""
+r.run_query(q)
+
+
+r.delete_db_file()
 CREATE TABLE orders (OrderId int64, PersonId int64, ProductId int64, Amount float64)
 CREATE TABLE persons (PersonID int64, PersonName object)
 CREATE TABLE products (ProductID int64,  Description object)
-
-persondf = reader.run_query("select * from persons")
-
-reader.delete_db_file()
-
-persondf 
-Out[46]: 
-   PersonID PersonName
-0         1       John
-1         2       Paul
-2         3       Mary
-3         4       karl
+   OrderId  PersonId  ProductId  Amount PersonName
+0        1         1         10  100.37       John
+1        2         2         30   50.04       Paul
+2        3         4         20   30.50       karl
 ```

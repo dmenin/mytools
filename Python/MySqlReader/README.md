@@ -18,9 +18,26 @@ Output:
 ```
 from MySqlReader import MySqlReader 
 
-r = MySqlReader()
-r.load_db_tables()
 
+r = MySqlReader()
+
+r.load_db_tables(drop_if_exists=False, print_messages=True)
+ 
+Reading file: orders.csv
+CREATE TABLE orders (OrderId int64, PersonId int64, ProductId int64, Amount float64)
+ 
+Reading file: persons.csv
+CREATE TABLE persons (PersonID int64, PersonName object)
+ 
+Reading file: products.csv
+CREATE TABLE products (ProductID int64, Description object)
+
+r.show_tables()
+Out[225]: 
+  TableName
+0    orders
+1   persons
+2  products
 
 q = """
 SELECT r.*, p.personname
@@ -30,6 +47,10 @@ LIMIT 10;"""
 persondf = r.run_query(q)
 print persondf 
 
+   OrderId  PersonId  ProductId  Amount PersonName
+0        1         1         10  100.37       John
+1        2         2         30   50.04       Paul
+2        3         4         20   30.50       karl
 
 q = """
 select Personid, sum(amount)
@@ -38,13 +59,11 @@ group by PersonId
 """
 r.run_query(q)
 
+Out[227]: 
+   PersonId  sum(amount)
+0         1       100.37
+1         2        50.04
+2         4        30.50
 
 r.delete_db_file()
-CREATE TABLE orders (OrderId int64, PersonId int64, ProductId int64, Amount float64)
-CREATE TABLE persons (PersonID int64, PersonName object)
-CREATE TABLE products (ProductID int64,  Description object)
-   OrderId  PersonId  ProductId  Amount PersonName
-0        1         1         10  100.37       John
-1        2         2         30   50.04       Paul
-2        3         4         20   30.50       karl
 ```

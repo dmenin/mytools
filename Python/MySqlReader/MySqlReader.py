@@ -25,7 +25,7 @@ class MySqlReader:
     def delete_db_file(self):
         os.remove(self.DB_NAME)
         
-    def load_db_tables(self, drop_if_exists=True, print_messages=False):
+    def load_db_tables(self, drop_if_exists=True, index_first_column=False, print_messages=False):
         """
         loads the files into tables
     
@@ -76,6 +76,14 @@ class MySqlReader:
                         print (sql)                        
                     conn.execute(sql)
                     
+                    if index_first_column:                                           
+                        indexName = "idx%s%s" % ( tablename, df.columns[0])
+                        sql = "CREATE INDEX %s on %s (%s)" % ( indexName, tablename, df.columns[0] )
+                        if print_messages:
+                            print sql
+                        conn.execute(sql) 
+                        
+
                     #append: If table exists, insert data. Create if does not exist.
                     df.to_sql(tablename, conn, if_exists='append', index=False) 
                 except Exception as e:
@@ -97,22 +105,19 @@ class MySqlReader:
         finally:
             conn.close()  
             
-    def show_tables(self):
-        q = """SELECT name as TableName FROM sqlite_master WHERE type='table';"""
+    def show_tables(self, include_indexes=False):
+        if include_indexes:
+            q = """SELECT name as ObjectName, type as ObjectType, tbl_name as TableName FROM sqlite_master;"""
+        else:
+            q = """SELECT name as TableName FROM sqlite_master  WHERE type='table';"""
         return self.run_query(q)
 
-        
-    #load_db_tables()
-    #
-    #q = """
-    #SELECT r.*, p.personnamea
-    #FROM orders r join persons p on r.personid = p.personid
-    #LIMIT 10;"""
-    #run_query(q)        
-    #
-    #
-    #
-    #dfresult = run_query(q)
-    #dfresult 
-    #
-    #delete_db_file()
+#What is the difference between sqlite3 and sqlalchemy?
+#http://stackoverflow.com/questions/5632677/what-is-the-difference-between-sqlite3-and-sqlalchemy
+
+
+#r = MySqlReader()
+#r.load_db_tables(drop_if_exists=True, index_first_column=True, print_messages=True)
+#print r.show_tables(include_indexes=True)
+#r.delete_db_file()
+

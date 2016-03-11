@@ -1,8 +1,10 @@
 from MySqlReader import MySqlReader 
 
 r = MySqlReader()
-r.load_db_tables(drop_if_exists=False, print_messages=True)
-r.show_tables()
+r.load_db_tables(drop_if_exists=True, index_first_column=True, print_messages=True)
+r.show_tables(include_indexes=True)
+
+
 
 q = """
 SELECT r.*, p.personname
@@ -17,6 +19,6 @@ select Personid, sum(amount)
 from orders
 group by PersonId
 """
-r.run_query(q)
+print r.run_query(q)
 
 r.delete_db_file()

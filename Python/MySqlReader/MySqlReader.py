@@ -18,9 +18,9 @@ class MySqlReader:
     os.chdir(os.path.dirname(os.path.realpath('__file__')))
     #print os.getcwd()
     
-    def __init__(self):
+    def __init__(self, data_folder='files'):
        self.DB_NAME = 'foo.db'
-       self.DATA_FOLDER = 'files'       
+       self.DATA_FOLDER = data_folder     
     
     def delete_db_file(self):
         os.remove(self.DB_NAME)

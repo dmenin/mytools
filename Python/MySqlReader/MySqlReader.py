@@ -45,6 +45,7 @@ class MySqlReader:
         """
         
         conn = sqlite.connect(self.DB_NAME, detect_types=sqlite.PARSE_DECLTYPES|sqlite.PARSE_COLNAMES)
+        conn.text_factory = str
         
         csvfiles = [f for f in listdir(self.DATA_FOLDER) if isfile(join(self.DATA_FOLDER, f))]
         

@@ -22,3 +22,12 @@ group by PersonId
 print r.run_query(q)
 
 r.delete_db_file()
+
+
+
+def sum(a, b):
+    return a + b
+
+values = (1, 2)
+
+ sum(*values)

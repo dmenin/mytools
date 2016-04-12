@@ -2,12 +2,11 @@ import sys
 import json
 import operator
 
-def main():
-
-    if len(sys.argv) == 2:
+def main():    
+    if len(sys.argv) == 3:
         sent_file = open(sys.argv[1])
         tweet_file = open(sys.argv[2])
-    else:
+    else: #default parameters for testing
         sent_file = open("AFINN-111.txt")
         tweet_file = open("microsoft.txt")
 
@@ -15,7 +14,7 @@ def main():
     #load dictionary
     scores = {}
     for line in sent_file:
-        term, score  = line.split("\t")  # The file is tab-delimited. "\t" means "tab character"
+        term, score  = line.split("\t") 
         scores[term] = int(score)
 
     #missing_scores = {} #not using this at the moment

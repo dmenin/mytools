@@ -55,6 +55,7 @@ n= 7
 #Linked Lists - Push & BuildOneTwoThree
 #Linked Lists - Length & Count
 #Linked Lists - Get Nth Node
+#Linked Lists - Insert Nth Node
 
 class Node(object):
     def __init__(self, data):
@@ -96,3 +97,17 @@ def get_nth(node, index, i=0):
     else:
         return node if index == i else get_nth(node.next, index, i + 1)
     
+
+def insert_nth(head, index, data):
+    if head is None:
+        head= Node(data)
+    else:        
+        new = Node(data)
+        if index == 0:
+            new.next=head
+            head = new
+        else:
+            n = get_nth(head,index-1)
+            new.next = n.next
+            n.next  = new
+    return head

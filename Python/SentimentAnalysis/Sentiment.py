@@ -1,6 +1,6 @@
 import sys
-import json
-import operator
+#import json
+#import operator
 
 def main():    
     if len(sys.argv) == 3:
@@ -11,7 +11,7 @@ def main():
         tweet_file = open("microsoft.txt")
 
 
-    #load dictionary
+    #load 1 word dictionary
     scores = {}
     for line in sent_file:
         term, score  = line.split("\t") 
@@ -29,9 +29,13 @@ def main():
         tweet_score = 0
         try:
             words = line.split()
+            #as per "GetTwitterData.py"'s notes, the last element is always the
+            #tweet's URL, so we dont need it
+            words = words[:-1]
 
             for word in words:
-                tweet_score += scores.get(word, 0)
+                if not (word.startswith('http') and word.startswith('#') and word.startswith('@') ):
+                    tweet_score += scores.get(word, 0)
 
             if tweet_score !=0:
                 ranked_tweets[line] = tweet_score
@@ -59,12 +63,6 @@ def main():
     print "Top 10 Worst tweets: "
     for key, value in sorted(ranked_tweets.iteritems(), key=lambda (k,v): (v,k))[0:9]:
         print "   %s: %s" % (key, value)
-
-
-
-    #Print all disctionary
-    #for key, value in sorted_x.iteritems() :
-        #print key, value
 
 
 if __name__ == '__main__':

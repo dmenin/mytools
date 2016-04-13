@@ -4,6 +4,7 @@ GetTwitterData and SentimentAnalysis
 * Call GetTwitterData.py with a "search parameter" 
 * Pipe the result to a text file
 * Use the sentiment file ("AFINN-111.txt") and the file above as inputs to the Sentiment.py
+	* More Info: https://dmenin.wordpress.com/2015/07/29/twitter-data-analysis/ and https://dmenin.wordpress.com/2015/07/29/twitter-data-analysis/
 
 Output:
 

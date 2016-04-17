@@ -45,7 +45,11 @@ def getData(mode, topn, search_criteria):
 		response = twitter_track(url, "GET", parameters)
 		for line in response:
 			text = line.strip()
-			#line is a string so Im doing some very basic (and error prone) string manipulation - room for improvement here
+			
+			#"line" has all the Json file for the tweet, containing all tweet information (id, time, user info and so on..)
+			#but since I only care about the message, I'm doing some very basic string manipulation where I find the "text"
+			#key and the following key (called "source") and get everything in between
+			#there is clearly room for improvement here - but it works for my simple use case			
 			s= str.find(text,"text")
 			e =str.find(text,"source")
 			print text[s+7:e-3]
@@ -68,6 +72,8 @@ def getData(mode, topn, search_criteria):
 
 #TO DO:
 #clean unnecessary characters, ex: URLS are coming like: http:\/\/t.co\/RC1Z7IaMu5
+#Look for the "lang" tag inside the "user" tag to filter by language - currently all languages are being fetched
+
 if __name__ == '__main__':
     #Options:
     #live track: Track Function where all tweets or a single search criteria can be tracked in real-time

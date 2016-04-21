@@ -56,6 +56,7 @@ n= 7
 #Linked Lists - Length & Count
 #Linked Lists - Get Nth Node
 #Linked Lists - Insert Nth Node
+#Linked Lists - Sorted Insert
 
 class Node(object):
     def __init__(self, data):
@@ -111,3 +112,24 @@ def insert_nth(head, index, data):
             new.next = n.next
             n.next  = new
     return head
+	
+def sorted_insert(head, data):
+    if not head or data < head.data: 
+        n = Node(data)
+        n.next=head
+        return n
+    else:
+        aux = head
+        while True:
+            if (aux.next):
+                if data < aux.next.data:
+                    n = Node(data)
+                    n.next = aux.next
+                    aux.next = n
+                    break
+                else:
+                    aux = aux.next
+            else:                
+                aux.next = Node(data)
+                break                
+    return head	

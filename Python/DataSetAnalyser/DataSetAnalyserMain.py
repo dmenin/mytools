@@ -12,19 +12,16 @@ class Analyser:
 
     def __init__(self):
         print 'Class Initialized'
+        
+        #More infor about tese fields on the SetUpTrainTest method
+        self.predictor_name = None
+        self.predictor_type = None
+        self.id_field_name = None
+        self.all_features = None
+        self.cat_features = None
+        self.num_features = None
+        
     
-    
-    ##TO DO: check that predictor_type is either continuous or discrite
-    def SetUp(self, predictor_name, predictor_type, id_field_name='id'):        
-        #Name and type of the field to be predicted:        
-        self.predictor_name = predictor_name        
-        self.predictor_type = predictor_type
-        
-        #Name of the unique identifyier on the dataset, not usefull for prediction
-        self.id_field_name = id_field_name
-        
-        
-
         
     def readCSV(self, file_path):
         f = pd.read_csv(file_path)
@@ -54,7 +51,8 @@ class Analyser:
         #all_features = [x for x in train.columns if x not in ['id','loss']]
         
         
-        cols = ['FieldName', 'DataType', 'NonNACount','DistinctCount','IsUnique','MostComon','MostComonCount','MostComonPercentage' ]
+        cols = ['FieldName', 'DataType', 'NonNACount','DistinctCount','IsUnique','MostComon','MostComonCount','MostComonPercentage'
+        , 'Min', 'Max', 'Avg', 'Std']
         returndf = pd.DataFrame(columns=cols)
         
         for col in df.columns:
@@ -72,26 +70,135 @@ class Analyser:
             d['MostComon'] = value_counts.index[0]
             d['MostComonCount'] = value_counts.iloc[0]
             d['MostComonPercentage'] = np.round(d['MostComonCount'] / np.float(d['NonNACount']),4)
+            
+            
+            if data.dtype in('int64','float64'):
+                d['Min'] =  round(min(data),4)
+                d['Max'] =  round(max(data),4)
+                d['Avg'] =  round(np.mean(data),4)
+                d['Std'] =  round(np.std(data),4)            
+            
+            
         
             returndf  = returndf.append(d, ignore_index=True)
         return returndf
 
 
 
+    ##TO DO: check that predictor_type is either continuous or discrite
+    def SetUpTrainTest(self, train, predictor_name, predictor_type, id_field_name='id'):        
+        #Name and type of the field to be predicted:        
+        self.predictor_name = predictor_name        
+        self.predictor_type = predictor_type
+        
+        #Name of the unique identifyier on the dataset, not usefull for prediction
+        self.id_field_name = id_field_name
 
 
-
-
-    def AnalyseDataSet(self, train):
         self.all_features = [x for x in train.columns if x not in [self.id_field_name, self.predictor_name]]
         self.cat_features = [x for x in train.select_dtypes(include=['object']).columns if x not in [self.id_field_name, self.predictor_name]]
+        #dates?
         self.num_features = [x for x in train.select_dtypes(exclude=['object']).columns if x not in [self.id_field_name, self.predictor_name]]
+
+
+
+    def AnalyseFeatures_plot(self, train, test=None, features_to_plot= None, normed = 0):
+        #Are we comparing the train set with a test set?        
+        if self.all_features is not None:
+            all_features = self.all_features
+        else: 
+            all_features = [x for x in train.columns]
+        
+        #Are we requesting specific features?
+        if features_to_plot is not None:
+            if type(features_to_plot) is not list:
+                raise TypeError("features_to_plot has to be a list")
+                
+            all_features = [x for x in all_features if x in features_to_plot]
+        
+        
+        #remobe the loss because there is no loss on test
+        #Loop and plot:
+        for f in all_features:           
+            
+            plt.figure(figsize=(10,4))
+            plt.suptitle("Feature: "+f, fontsize=16)            
+            
+            if train[f].dtype == 'object':
+                train_counts = train[f].value_counts()
+                
+                if test is not None:            
+                    test_counts = test[f].value_counts()
+                    ylim = max(train_counts[0], test_counts [0])
+                else:
+                    ylim = train_counts[0]
+                
+                ylim += ylim *.1
+            
+                ax1 = plt.subplot(1, 2, 1) #1 row, 2columns, 1st plot
+                ax1.set_ylim([0,ylim])
+                train_counts.plot(kind='bar', title='Train', color='b')
+                
+                if test is not None:         
+                    ax2 = plt.subplot(1, 2, 2)
+                    ax2.set_ylim([0,ylim])
+                    test_counts.plot(kind='bar', title='Test', color='green')
+                    
+                plt.show()   
+            elif train[f].dtype in('int64','float64'):
+                
+                ax1 = plt.subplot(1, 2, 1) #1 row, 2columns, 1st plot
+                values = train[f]
+                
+                
+                n, bins, patches = plt.hist(values, 60, normed=normed, facecolor='blue', alpha=0.75)
+                if normed == 1:
+                    (mu, sigma) = norm.fit(values)
+                    y = mlab.normpdf( bins, mu, sigma)
+                    l = plt.plot(bins, y, 'r--', linewidth=2)
+                    plt.ylabel('Probability')
+                    plt.title(r'$\mathrm{Train:}\ \mu=%.3f,\ \sigma=%.3f$' %(mu, sigma))
+                else:
+                    plt.ylabel('Count')    
+                    plt.title('aaa')
+                
+                plt.grid(True)
+                
+
+                   
+                ax2 = plt.subplot(1, 2, 2)
+                values = test[f]
+                
+                n, bins, patches = plt.hist(values, 60, normed=normed, facecolor='green', alpha=0.75)
+                if normed == 1:
+                    (mu, sigma) = norm.fit(values)
+                    y = mlab.normpdf( bins, mu, sigma)
+                    l = plt.plot(bins, y, 'r--', linewidth=2)
+                    plt.ylabel('Probability')
+                    plt.title(r'$\mathrm{Test:}\ \mu=%.3f,\ \sigma=%.3f$' %(mu, sigma))
+                else:
+                    plt.ylabel('Count')
+                    plt.title('aaa')
+                
+                plt.grid(True)
+                
+                    
+                plt.show()        
+            
+
+
+            
+        
 
 
 
     
     def AnalysePredictor(self, train, predictor_transformation='none'):
-        
+        if self.predictor_name is None:
+            raise TypeError("Execute the SetUpTrainTest method to use this feature")
+            return
+            
+        #http://matplotlib.org/users/pyplot_tutorial.html
         if self.predictor_type == 'continuous':
             values = train[self.predictor_name]
             
@@ -118,7 +225,7 @@ class Analyser:
             
             plt.show()
         else:
-            print 'not implemented'
+            print 'predictor_type not implemented'
             
         
         

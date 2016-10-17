@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import norm
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 
@@ -100,14 +101,22 @@ class Analyser:
         #dates?
         self.num_features = [x for x in train.select_dtypes(exclude=['object']).columns if x not in [self.id_field_name, self.predictor_name]]
 
+            
+        
+    def AnalyseFeatures_PlotBasic(self, train, test=None, features_to_plot= None, normed = 0):
 
-
-    def AnalyseFeatures_plot(self, train, test=None, features_to_plot= None, normed = 0):
+        if test is not None and self.predictor_name is None:
+            raise TypeError("To compare to a test set, you need to execute the SetUpTrainTest method")
+            return        
+            
         #Are we comparing the train set with a test set?        
         if self.all_features is not None:
             all_features = self.all_features
+            predictor = self.predictor_name # to avoid comparing with the test set where it doesnt exist
         else: 
             all_features = [x for x in train.columns]
+            predictor = 'not important'
+        
         
         #Are we requesting specific features?
         if features_to_plot is not None:
@@ -123,7 +132,8 @@ class Analyser:
             
             plt.figure(figsize=(10,4))
             plt.suptitle("Feature: "+f, fontsize=16)            
-            
+           
+           
             if train[f].dtype == 'object':
                 train_counts = train[f].value_counts()
                 
@@ -139,7 +149,7 @@ class Analyser:
                 ax1.set_ylim([0,ylim])
                 train_counts.plot(kind='bar', title='Train', color='b')
                 
-                if test is not None:         
+                if test is not None and f!=predictor:
                     ax2 = plt.subplot(1, 2, 2)
                     ax2.set_ylim([0,ylim])
                     test_counts.plot(kind='bar', title='Test', color='green')
@@ -160,35 +170,78 @@ class Analyser:
                     plt.title(r'$\mathrm{Train:}\ \mu=%.3f,\ \sigma=%.3f$' %(mu, sigma))
                 else:
                     plt.ylabel('Count')    
-                    plt.title('aaa')
+                    plt.title('Train')
                 
                 plt.grid(True)
                 
 
-                   
-                ax2 = plt.subplot(1, 2, 2)
-                values = test[f]
+                if test is not None and f!=predictor:                   
+                    ax2 = plt.subplot(1, 2, 2)
+                    values = test[f]
+                    
+                    n, bins, patches = plt.hist(values, 60, normed=normed, facecolor='green', alpha=0.75)
+                    if normed == 1:
+                        (mu, sigma) = norm.fit(values)
+                        y = mlab.normpdf( bins, mu, sigma)
+                        l = plt.plot(bins, y, 'r--', linewidth=2)
+                        plt.ylabel('Probability')
+                        plt.title(r'$\mathrm{Test:}\ \mu=%.3f,\ \sigma=%.3f$' %(mu, sigma))
+                    else:
+                        plt.ylabel('Count')
+                        plt.title('Test')
                 
-                n, bins, patches = plt.hist(values, 60, normed=normed, facecolor='green', alpha=0.75)
-                if normed == 1:
-                    (mu, sigma) = norm.fit(values)
-                    y = mlab.normpdf( bins, mu, sigma)
-                    l = plt.plot(bins, y, 'r--', linewidth=2)
-                    plt.ylabel('Probability')
-                    plt.title(r'$\mathrm{Test:}\ \mu=%.3f,\ \sigma=%.3f$' %(mu, sigma))
-                else:
-                    plt.ylabel('Count')
-                    plt.title('aaa')
-                
-                plt.grid(True)
+                    plt.grid(True)
                 
                     
                 plt.show()        
             
 
+         
+    def _checkFeaturesToPlotIsList(self,features_to_plot):
 
+        if self.predictor_name is None:
+            raise TypeError("To use this method, you need to execute the SetUpTrainTest method")
             
+        #Are we requesting specific features?
+        if features_to_plot is not None:
+            if type(features_to_plot) is not list:
+                raise TypeError("features_to_plot has to be a list")
+                
+        return True
         
+
+
+    def AnalyseFeatures_TrainBoxPLot(self, train, features_to_plot= None):
+        
+        if features_to_plot is not None and self._checkFeaturesToPlotIsList(features_to_plot):               
+            num_features = [x for x in self.all_features if x in features_to_plot]
+        else:
+            num_features =  list(self.num_features)
+            
+        plt.figure(figsize=(13,9))
+        sns.boxplot(train[num_features])
+        
+        
+        
+
+    def AnalyseFeatures_TrainHeatMap (self, train, features_to_plot= None):
+        
+        if features_to_plot is not None and self._checkFeaturesToPlotIsList(features_to_plot):               
+            num_features = [x for x in self.all_features if x in features_to_plot]
+        else:
+            num_features =  list(self.num_features)  
+        
+
+        num_features.append('loss')
+        
+        
+        correlationMatrix = train[num_features].corr().abs()
+        plt.subplots(figsize=(13, 9))
+        sns.heatmap(correlationMatrix,annot=True)
+        
+        # Mask unimportant features
+        sns.heatmap(correlationMatrix, mask=correlationMatrix < 1, cbar=False)
+        plt.show()
 
 
 

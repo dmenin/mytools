@@ -7,6 +7,8 @@ import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from DataSetEncoder import DataSetEncoder 
+
 
 
 class Analyser:
@@ -14,13 +16,31 @@ class Analyser:
     def __init__(self):
         print 'Class Initialized'
         
-        #More infor about tese fields on the SetUpTrainTest method
-        self.predictor_name = None
+        #More infor about the fields bellow on the correspondent methods
+        
+        #SetUpTrainTest method:
+        self.predictor_name = None #Name of the predictor; Used also as a test to check if SetUpTrainTest has been called
         self.predictor_type = None
-        self.id_field_name = None
-        self.all_features = None
-        self.cat_features = None
-        self.num_features = None
+        self.id_field_name  = None
+        self.all_features   = None
+        self.cat_features   = None
+        self.num_features   = None
+        
+        #Preprocess_MergeTrainTest method:
+        self.train_ids        = None  #Ids of the train set.
+        self.target           = None  #Predictor
+        self.test_ids         = None  #Ids of the test set. 
+        self.len_train_before = None  #To assert the len is the same before\after merge\split
+        self.len_test_before  = None  #To assert the len is the same before\after merge\split
+        
+        
+        #Preprocess_EncodeCategoricalFeatures
+        self.encodings = None #Dictionary with the mappings applied on the encoding phase
+    
+    
+
+
+        
         
     
         
@@ -281,7 +301,123 @@ class Analyser:
             print 'predictor_type not implemented'
             
         
-        
-        
+    def Preprocess_UpdateValuesNotOnTest(self, train, test, new_value='NIT'):# Not In Test
 
-#from DataSetAnalyser.DataSetAnalyserMain import DataSetAnalyserMainClass
+        for c in self.cat_features:
+            test_indexes = test[c].value_counts().index.values
+            if len(train.loc[~train[c].isin(test_indexes)]) >0:
+                train.loc[~train[c].isin(test_indexes), c] = 'NIT' 
+                print 'Field:', c, len(train[train[c] == 'NIT']), 'updates'
+        
+        return train
+        #debug        
+        #import pandasql as pdsql
+        #pysql = lambda q: pdsql.sqldf(q, globals())
+        #df1 = pysql("select distinct TR.cat116  from train TR left join (select distinct cat116  as cat116 from test ) TE on TR.cat116 = TE.cat116 where TE.cat116 is null")
+        
+        #c = 'cat1'
+        #test_indexes = test[c].value_counts().index.values
+        #if len(train.loc[~train[c].isin(test_indexes)]) >0:
+            #train.loc[~train[c].isin(test_indexes), c] = 'NIT' # Not In Test
+            #print 'Field:', c, len(train[train[c] == 'NIT'])        
+
+
+
+    def Preprocess_MergeTrainTest(self, train, test):
+
+        if self.predictor_name is None:
+            raise TypeError("Execute the SetUpTrainTest method to use this feature")
+            return        
+
+        self.train_ids = train[self.id_field_name]
+        train = train.drop([self.id_field_name],axis=1)
+        
+        
+        self.target = train[self.predictor_name]        
+        test[self.predictor_name] = 0
+        
+        
+        self.test_ids = test[self.id_field_name]
+        test = test.drop([self.id_field_name],axis=1)
+        
+        
+        
+        self.len_train_before = len(train)
+        self.len_test_before = len(test)
+                
+        dfall = pd.concat((train, test), axis=0, ignore_index=True)   
+        return dfall
+    
+    
+    #threshold between "One Hot" Encoding (dummies) and "regular" encoding.
+    #The threshold is applied to the distinct count values of the column, so for example, if the threshold is 5, a column with 2
+    #   unique values will be "One Hot" Encoded (so each value becomes another column with flag 1 for the real one and 0 for the other
+    #   and a column with 10 unique values will get one integer value for each one of its unique values
+    #Use a very high value to "One Hot" all columns and  0 to regular encode all columns
+    def Preprocess_EncodeCategoricalFeatures(self, dfall, encoding_threshold=5, extra_encode=[]):
+        
+        new_names = []
+        
+        self.encodings={}
+        encoder = DataSetEncoder()
+        
+        for col in dfall.columns:
+            if ((dfall[col].dtypes == object or col in extra_encode)):
+                if len(dfall[col].value_counts()) <= encoding_threshold:
+                    print 'One Hot Encoding: ',col
+                    new_name = 'is'+col
+            
+                    dfall_dummy = pd.get_dummies(dfall[col], prefix=new_name)
+                    dfall = dfall.drop([col], axis=1)
+                    dfall = pd.concat((dfall, dfall_dummy), axis=1)
+                    new_names.extend(dfall_dummy.columns)
+                else:
+                    print 'Regular Encoding: ',col
+                    dfall[col], self.encodings = encoder.encode(dfall[col].values,col,self.encodings)                
+                    new_names.append(col)
+            else:
+                print 'Not touching: ',col
+                new_names.append(col)
+        
+        #rearange the data frame to the original position:
+        dfall = dfall[new_names]
+        return dfall
+                
+        
+    def Preprocess_SplitBackIntoTrainAndTest(self, dfall):
+
+        if self.predictor_name is None:
+            raise TypeError("Execute the SetUpTrainTest method to use this feature")
+            return     
+        
+        train = dfall[:self.len_train_before]
+        test = dfall[self.len_train_before:]
+        
+        test = test.drop([self.predictor_name],axis=1)
+        
+        #Check the Lenght is still the same
+        assert(self.len_train_before == len(train))
+        assert(self.len_test_before == len(test))
+        
+        return train, test
+    
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

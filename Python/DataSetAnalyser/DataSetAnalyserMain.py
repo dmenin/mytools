@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import os 
+import pickle
 
 
 from scipy.stats import norm
@@ -14,8 +16,7 @@ from DataSetEncoder import DataSetEncoder
 class Analyser:
 
     def __init__(self):
-        print 'Class Initialized'
-        
+        print 'Class Initialized'        
         #More infor about the fields bellow on the correspondent methods
         
         #SetUpTrainTest method:
@@ -37,12 +38,7 @@ class Analyser:
         #Preprocess_EncodeCategoricalFeatures
         self.encodings = None #Dictionary with the mappings applied on the encoding phase
     
-    
 
-
-        
-        
-    
         
     def readCSV(self, file_path):
         f = pd.read_csv(file_path)
@@ -345,7 +341,9 @@ class Analyser:
         self.len_train_before = len(train)
         self.len_test_before = len(test)
                 
-        dfall = pd.concat((train, test), axis=0, ignore_index=True)   
+        #do not ignore index; MOst certenlly will end up with duplicated indexes but we need the original indexes
+        #when joining self.test_ids back to the test set
+        dfall = pd.concat((train, test), axis=0, ignore_index=False)
         return dfall
     
     
@@ -367,7 +365,7 @@ class Analyser:
                     print 'One Hot Encoding: ',col
                     new_name = 'is'+col
             
-                    dfall_dummy = pd.get_dummies(dfall[col], prefix=new_name)
+                    dfall_dummy = pd.get_dummies(dfall[col], prefix=new_name).astype(np.int8)
                     dfall = dfall.drop([col], axis=1)
                     dfall = pd.concat((dfall, dfall_dummy), axis=1)
                     new_names.extend(dfall_dummy.columns)
@@ -405,7 +403,34 @@ class Analyser:
 
  
 
+    def Utils_SaveObjects(self, save_path, train, test, da
+                                   , save_file_train = 'train.pkl'
+                                   , save_file_test = 'test.pkl'
+                                   , DataSetAnalyserObj = 'daObject.pkl'):  
+        
 
+        pickle.dump(train, open(save_path + save_file_train, 'wb'))
+        pickle.dump(test , open(save_path + save_file_test, 'wb'))
+        pickle.dump(da , open(save_path + DataSetAnalyserObj, 'wb'))
+        
+  
+      
+    def Utils_LoadObjects(self, save_path, save_file_train = 'train.pkl'
+                                   , save_file_test = 'test.pkl'
+                                   , DataSetAnalyserObj = 'daObject.pkl'):    
+                
+        train_path = save_path+save_file_train
+        print 'Loading training pickle from:',train_path
+        train = pickle.load(open(train_path , 'rb'))
+        
+        test_path = save_path+save_file_test
+        print 'Loading testing  pickle from:',test_path
+        test  = pickle.load(open(test_path, 'rb'))
+        
+        da  = pickle.load(open(save_path+DataSetAnalyserObj, 'rb'))
+        
+        return train, test, da
+        
 
 
 

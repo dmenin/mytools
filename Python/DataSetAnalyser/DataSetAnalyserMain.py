@@ -5,11 +5,14 @@ import pickle
 
 
 from scipy.stats import norm
+from scipy import stats
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 from DataSetEncoder import DataSetEncoder 
+
+import operator
 
 
 
@@ -37,7 +40,9 @@ class Analyser:
         
         #Preprocess_EncodeCategoricalFeatures
         self.encodings = None #Dictionary with the mappings applied on the encoding phase
-    
+        
+        #Preprocess_TransformNumericFeaturesr
+        self.lmbdaDict = None #Dictionary with the lambdas applied on numerica box cox encoding
 
         
     def readCSV(self, file_path):
@@ -69,7 +74,7 @@ class Analyser:
         
         
         cols = ['FieldName', 'DataType', 'NonNACount','DistinctCount','IsUnique','MostComon','MostComonCount','MostComonPercentage'
-        , 'Min', 'Max', 'Avg', 'Std']
+        , 'Min', 'Max', 'Avg', 'Std', 'Skewness']
         returndf = pd.DataFrame(columns=cols)
         
         for col in df.columns:
@@ -90,10 +95,12 @@ class Analyser:
             
             
             if data.dtype in('int64','float64'):
-                d['Min'] =  round(min(data),4)
-                d['Max'] =  round(max(data),4)
-                d['Avg'] =  round(np.mean(data),4)
-                d['Std'] =  round(np.std(data),4)            
+                d['Min']      =  round(min(data),4)
+                d['Max']      =  round(max(data),4)
+                d['Avg']      =  round(np.mean(data),4)
+                d['Std']      =  round(np.std(data),4)
+                d['Skewness'] =  round(stats.skew(data),4)    
+                
             
             
         
@@ -118,7 +125,7 @@ class Analyser:
         self.num_features = [x for x in train.select_dtypes(exclude=['object']).columns if x not in [self.id_field_name, self.predictor_name]]
 
             
-        
+    #add features to plot in case is a new feature?
     def AnalyseFeatures_PlotBasic(self, train, test=None, features_to_plot= None, normed = 0):
 
         if test is not None and self.predictor_name is None:
@@ -325,26 +332,25 @@ class Analyser:
             raise TypeError("Execute the SetUpTrainTest method to use this feature")
             return        
 
+        
         self.train_ids = train[self.id_field_name]
-        train = train.drop([self.id_field_name],axis=1)
-        
-        
+        self.test_ids = test[self.id_field_name]
         self.target = train[self.predictor_name]        
         test[self.predictor_name] = 0
         
-        
-        self.test_ids = test[self.id_field_name]
-        test = test.drop([self.id_field_name],axis=1)
-        
-        
-        
+        dfall = pd.concat((train, test)).reset_index(drop=True)
+                
         self.len_train_before = len(train)
         self.len_test_before = len(test)
                 
-        #do not ignore index; MOst certenlly will end up with duplicated indexes but we need the original indexes
-        #when joining self.test_ids back to the test set
-        dfall = pd.concat((train, test), axis=0, ignore_index=False)
+
+        #train = train.drop([self.id_field_name],axis=1)#deprecated    
+        #test = test.drop([self.id_field_name],axis=1) deprecated                
+        #do not ignore index; Most certenlly will end up with duplicated indexes but we need the original indexes when joining self.test_ids back to the test set
+        #dfall = pd.concat((train, test), axis=0, ignore_index=False) # deprecated
+                
         return dfall
+        
     
     
     #threshold between "One Hot" Encoding (dummies) and "regular" encoding.
@@ -353,11 +359,16 @@ class Analyser:
     #   and a column with 10 unique values will get one integer value for each one of its unique values
     #Use a very high value to "One Hot" all columns and  0 to regular encode all columns
     def Preprocess_EncodeCategoricalFeatures(self, dfall, encoding_threshold=5, extra_encode=[]):
+
+        #to remeber the order
+        ID = self.id_field_name
+        dfall[ID]=pd.Categorical(dfall[ID], dfall[ID].values.tolist())
         
-        new_names = []
-        
+        new_names = []        
         self.encodings={}
-        encoder = DataSetEncoder()
+        
+        
+        #encoder = DataSetEncoder() deprecated
         
         for col in dfall.columns:
             if ((dfall[col].dtypes == object or col in extra_encode)):
@@ -371,16 +382,81 @@ class Analyser:
                     new_names.extend(dfall_dummy.columns)
                 else:
                     print 'Regular Encoding: ',col
-                    dfall[col], self.encodings = encoder.encode(dfall[col].values,col,self.encodings)                
+                    #Get a list of unique values soted alphabetic
+                    sorting_list=np.unique(sorted(dfall[col],key=lambda x:(str.lower(x),x)))
+                    dfall[col]=pd.Categorical(dfall[col], sorting_list)
+        
+                    dfall=dfall.sort_values(col)
+                    r=pd.factorize(dfall[col], sort=True)
+                    
+                    dfall[col] = r[0]
+                    self.encodings[col] = zip( np.unique(r[0]), r[1])
+
+                    
+                    #dfall[col], self.encodings = encoder.encode(dfall[col].values,col,self.encodings) deprecated
                     new_names.append(col)
             else:
                 print 'Not touching: ',col
                 new_names.append(col)
         
+        #Reorder 
+        dfall=dfall.sort_values(ID) 
+        dfall = dfall.drop([ID],axis=1)
+        
         #rearange the data frame to the original position:
         dfall = dfall[new_names]
         return dfall
-                
+        
+    
+    
+    def Preprocess_TransformPredictor(self, dfall, trans_type ='log'):
+        
+        if self.predictor_name is None:
+            raise TypeError("Execute the SetUpTrainTest method to use this feature")
+            return            
+            
+        if trans_type == 'log':
+            dfall[self.predictor_name]= np.log(dfall[self.predictor_name])
+        
+        return dfall
+        
+    
+    def Preprocess_TransformNumericFeatures(self, dfall, trans_type ='boxcox', correction=0.00001):
+
+        if self.num_features is None:
+            raise TypeError("Execute the SetUpTrainTest method to use this feature")
+            return           
+        
+        if trans_type not in ['boxcox']:
+            raise TypeError("Transformation type not supported")
+            return            
+
+        self.lmbdaDict = {}
+        for c in self.num_features:
+            print 'Applying', trans_type + 'transformation on:', c
+            if trans_type == 'boxcox':
+                  b = stats.boxcox(dfall[c]+ correction)
+                  dfall[c] = b[0]
+                  self.lmbdaDict[c]=b[1]
+        
+        return dfall
+        
+        #possible idea to improve:
+#    # compute skew and do Box-Cox transformation
+#    skewed_feats = X_train[da.num_features].apply(lambda x: skew(x.dropna()))
+#    print("\nSkew in numeric features:")
+#    print(skewed_feats)
+#    # transform features with skew > 0.25 (this can be varied to find optimal value)
+#    skewed_feats = skewed_feats[skewed_feats > 0.25]
+#    skewed_feats = skewed_feats.index
+#    for feats in skewed_feats:
+#        X_train_test[feats] = X_train_test[feats] + 1
+#        X_train_test[feats], lam = boxcox(X_train_test[feats])
+#
+#    X_train_test[numeric_feats].apply(lambda x: skew(x.dropna()))        
+
+
+        
         
     def Preprocess_SplitBackIntoTrainAndTest(self, dfall):
 
@@ -433,16 +509,29 @@ class Analyser:
         
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def Utils_XGBFeatureImportance(self, features, model, save_path, save_fig_name='feature_importance_xgb'):
+        save_fig_name = save_path + save_fig_name
+        outfile = open(save_fig_name+'.fmap', 'w')
+        i = 0
+        for feat in features:
+            outfile.write('{0}\t{1}\tq\n'.format(i, feat))
+            i = i + 1
+    
+        outfile.close()
+            
+        importance = model.get_fscore(fmap=save_fig_name+'.fmap')
+        importance = sorted(importance.items(), key=operator.itemgetter(1))
+        
+        
+        df = pd.DataFrame(importance, columns=['feature', 'fscore'])
+        df['fscore'] = df['fscore'] / df['fscore'].sum()
+        
+        
+        plt.figure()
+        df.plot()
+        df.plot(kind='barh', x='feature', y='fscore', legend=False, figsize=(12, 30))
+        plt.title('XGBoost Feature Importance')
+        plt.xlabel('relative importance')
+        plt.gcf().savefig(save_fig_name+'.png')
+        
+        return df

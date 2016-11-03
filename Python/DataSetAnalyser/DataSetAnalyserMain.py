@@ -43,6 +43,9 @@ class Analyser:
         
         #Preprocess_TransformNumericFeaturesr
         self.lmbdaDict = None #Dictionary with the lambdas applied on numerica box cox encoding
+        
+        #Preprocess_TransformPredictor
+        self.predictor_shift = None # Shift correction to be applied to the prediction prior to the transformation
 
         
     def readCSV(self, file_path):
@@ -303,8 +306,9 @@ class Analyser:
         else:
             print 'predictor_type not implemented'
             
-        
-    def Preprocess_UpdateValuesNotOnTest(self, train, test, new_value='NIT'):# Not In Test
+    
+    #On the train set, set values that dont exist on the test set to NIT - Not In Test
+    def Preprocess_UpdateValuesNotOnTest(self, train, test, new_value='NIT'):
 
         for c in self.cat_features:
             test_indexes = test[c].value_counts().index.values
@@ -323,6 +327,36 @@ class Analyser:
         #if len(train.loc[~train[c].isin(test_indexes)]) >0:
             #train.loc[~train[c].isin(test_indexes), c] = 'NIT' # Not In Test
             #print 'Field:', c, len(train[train[c] == 'NIT'])        
+
+    
+    #Set to Nan the categories that exist on train but not on test and vice versa;
+    #On another words, to be non-nan, the cat needs to exist in both train and test sets    
+    #It takes the dfall and both train and test as parameters; The last two are used to verify whether or not values
+    #exist and dfall is where the updates will be applied
+    def Preprocess_NanValuesNotOnBothDatasets(self, dfall, train, test):
+
+        if self.cat_features is None:
+            raise TypeError("Execute the SetUpTrainTest method to use this feature")
+            return        
+        
+        for column in self.cat_features:
+            if train[column].nunique() != test[column].nunique():
+                set_train = set(train[column].unique())
+                set_test = set(test[column].unique())
+                remove_train = set_train - set_test
+                remove_test = set_test - set_train
+        
+                remove = remove_train.union(remove_test)
+                def filter_cat(x):
+                    if x in remove:
+                        return np.nan
+                    return x
+        
+                dfall[column] = dfall[column].apply(lambda x: filter_cat(x), 1)
+                print column, '->', len(dfall[column][pd.isnull(dfall[column])]),'occurences on these cats:' ,', '.join(remove)
+                    
+        return dfall
+        
 
 
 
@@ -351,7 +385,7 @@ class Analyser:
                 
         return dfall
         
-    
+
     
     #threshold between "One Hot" Encoding (dummies) and "regular" encoding.
     #The threshold is applied to the distinct count values of the column, so for example, if the threshold is 5, a column with 2
@@ -367,7 +401,7 @@ class Analyser:
         new_names = []        
         self.encodings={}
         
-        
+        #dfall['cat1'].dtypes
         #encoder = DataSetEncoder() deprecated
         
         for col in dfall.columns:
@@ -382,15 +416,21 @@ class Analyser:
                     new_names.extend(dfall_dummy.columns)
                 else:
                     print 'Regular Encoding: ',col
-                    #Get a list of unique values soted alphabetic
-                    sorting_list=np.unique(sorted(dfall[col],key=lambda x:(str.lower(x),x)))
-                    dfall[col]=pd.Categorical(dfall[col], sorting_list)
-        
-                    dfall=dfall.sort_values(col)
                     r=pd.factorize(dfall[col], sort=True)
-                    
                     dfall[col] = r[0]
-                    self.encodings[col] = zip( np.unique(r[0]), r[1])
+                    #wrong:
+                    self.encodings[col] = zip( np.unique(r[0]), r[1] )
+                    
+                    
+                    #Get a list of unique values soted alphabetic
+#                    sorting_list=np.unique(sorted(dfall[col],key=lambda x:(str.lower(x),x)))
+#                    dfall[col]=pd.Categorical(dfall[col], sorting_list)
+#        
+#                    dfall=dfall.sort_values(col)
+#                    r=pd.factorize(dfall[col], sort=True)
+#                    
+#                    dfall[col] = r[0]
+#                    self.encodings[col] = zip( np.unique(r[0]), r[1])
 
                     
                     #dfall[col], self.encodings = encoder.encode(dfall[col].values,col,self.encodings) deprecated
@@ -401,22 +441,25 @@ class Analyser:
         
         #Reorder 
         dfall=dfall.sort_values(ID) 
-        dfall = dfall.drop([ID],axis=1)
+
         
         #rearange the data frame to the original position:
         dfall = dfall[new_names]
+
+        dfall = dfall.drop([ID],axis=1)        
         return dfall
-        
     
     
-    def Preprocess_TransformPredictor(self, dfall, trans_type ='log'):
+    def Preprocess_TransformPredictor(self, dfall, trans_type ='log', predictor_shift = 0):
         
         if self.predictor_name is None:
             raise TypeError("Execute the SetUpTrainTest method to use this feature")
             return            
             
         if trans_type == 'log':
-            dfall[self.predictor_name]= np.log(dfall[self.predictor_name])
+            self.predictor_shift = predictor_shift            
+            dfall[self.predictor_name]= np.log(dfall[self.predictor_name] + predictor_shift)
+            
         
         return dfall
         

@@ -10,7 +10,7 @@ import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from DataSetEncoder import DataSetEncoder 
+#from DataSetEncoder import DataSetEncoder 
 
 import operator
 
@@ -46,6 +46,8 @@ class Analyser:
         
         #Preprocess_TransformPredictor
         self.predictor_shift = None # Shift correction to be applied to the prediction prior to the transformation
+        
+        self.one_hot_numeric_rounding = 2 #In case we want to deal with numeric variables as categories and encode them; This is the rounding factor
 
         
     def readCSV(self, file_path):
@@ -181,7 +183,7 @@ class Analyser:
                     test_counts.plot(kind='bar', title='Test', color='green')
                     
                 plt.show()   
-            elif train[f].dtype in('int64','float64'):
+            elif train[f].dtype in('int32', 'int64', 'float32', 'float64'):
                 
                 ax1 = plt.subplot(1, 2, 1) #1 row, 2columns, 1st plot
                 values = train[f]
@@ -307,6 +309,21 @@ class Analyser:
             print 'predictor_type not implemented'
             
     
+    #Reports number of distinct counts across numericfeatures; rounding from
+    #upper to lower decimal places
+    def AnalyseNumericFeaturesRoundingCounts(self, dfall, upper=7, lower=-1):
+        d ={}
+        for i in range (upper, lower, -1):
+            l = []
+            for col in self.num_features:
+                l.append (len(dfall[col].apply(lambda x:round(x,i)).value_counts()))
+            d[i] = l
+            
+        df = pd.DataFrame(d, index=self.num_features)
+        return df
+
+            
+    
     #On the train set, set values that dont exist on the test set to NIT - Not In Test
     def Preprocess_UpdateValuesNotOnTest(self, train, test, new_value='NIT'):
 
@@ -406,11 +423,26 @@ class Analyser:
         
         for col in dfall.columns:
             if ((dfall[col].dtypes == object or col in extra_encode)):
-                if len(dfall[col].value_counts()) <= encoding_threshold:
+
+                #if we are passing anythin on the extra_encode, it may be a numeric so we need to count with the rounding
+                if dfall[col].dtypes == object:
+                    num_encode_values= len(dfall[col].value_counts()) 
+                else:
+                    num_encode_values = len( dfall[col].apply(lambda x:round(x,self.one_hot_numeric_rounding)).value_counts())
+
+                
+                if num_encode_values <= encoding_threshold:                    
                     print 'One Hot Encoding: ',col
                     new_name = 'is'+col
-            
-                    dfall_dummy = pd.get_dummies(dfall[col], prefix=new_name).astype(np.int8)
+                    
+                    #Normal only encode string features, but we can force to encode a numeric;
+                    #If thats the case, we may want to round the feature first
+                    if dfall[col].dtypes == object:
+                        dfall_dummy = pd.get_dummies(dfall[col], prefix=new_name).astype(np.int8)
+                    else:
+                        print '     Encoding Numeric Feature with '+str(self.one_hot_numeric_rounding)+' decimal places'
+                        dfall_dummy = pd.get_dummies(dfall[col].apply(lambda x:round(x,self.one_hot_numeric_rounding)), prefix=new_name).astype(np.int8)
+                        
                     dfall = dfall.drop([col], axis=1)
                     dfall = pd.concat((dfall, dfall_dummy), axis=1)
                     new_names.extend(dfall_dummy.columns)
@@ -418,22 +450,38 @@ class Analyser:
                     print 'Regular Encoding: ',col
                     r=pd.factorize(dfall[col], sort=True)
                     dfall[col] = r[0]
-                    #wrong:
-                    self.encodings[col] = zip( np.unique(r[0]), r[1] )
+                    #wrong when there are -1s:
+                    #self.encodings[col] = zip( np.unique(r[0]), r[1] )
                     
-                    
+                    #this deals with -1 resulted of the Nans possibly produced by function Preprocess_NanValuesNotOnBothDatasets
+                    #the idea is to remove the -1 from the mapping (otherwise it will be on the first possition and scramble the resul)
+                    #and then add it manually in the end when appropriate
+                    mappings = []
+                    t = None
+                    uniques = np.unique(r[0])
+                    if -1 in uniques:
+                        uniques  = np.delete(uniques,np.where(uniques ==-1))
+                        t = (-1, 'Nan')
+                        
+                    mappings = zip(uniques, r[1])
+                    if t is not None:
+                        mappings.append(t)
+                    self.encodings[col] = mappings
+    
+                        
+                    #Second code deprecated:
                     #Get a list of unique values soted alphabetic
-#                    sorting_list=np.unique(sorted(dfall[col],key=lambda x:(str.lower(x),x)))
-#                    dfall[col]=pd.Categorical(dfall[col], sorting_list)
-#        
-#                    dfall=dfall.sort_values(col)
-#                    r=pd.factorize(dfall[col], sort=True)
-#                    
-#                    dfall[col] = r[0]
-#                    self.encodings[col] = zip( np.unique(r[0]), r[1])
+                    #sorting_list=np.unique(sorted(dfall[col],key=lambda x:(str.lower(x),x)))
+                    #dfall[col]=pd.Categorical(dfall[col], sorting_list)
+                    #
+                    #dfall=dfall.sort_values(col)
+                    #r=pd.factorize(dfall[col], sort=True)
+                    #
+                    #dfall[col] = r[0]
+                    #self.encodings[col] = zip( np.unique(r[0]), r[1])
 
-                    
-                    #dfall[col], self.encodings = encoder.encode(dfall[col].values,col,self.encodings) deprecated
+                    #deprecated
+                    #dfall[col], self.encodings = encoder.encode(dfall[col].values,col,self.encodings) 
                     new_names.append(col)
             else:
                 print 'Not touching: ',col

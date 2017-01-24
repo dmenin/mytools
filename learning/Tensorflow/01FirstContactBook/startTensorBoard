@@ -1,0 +1,2 @@
+tensorboard --logdir=run2:/tmp/tensorflow/ --port 6006
+

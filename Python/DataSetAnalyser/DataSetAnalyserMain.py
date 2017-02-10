@@ -36,6 +36,7 @@ class Analyser:
         self.test_ids         = None  #Ids of the test set. 
         self.len_train_before = None  #To assert the len is the same before\after merge\split
         self.len_test_before  = None  #To assert the len is the same before\after merge\split
+        self.merge_splittype  = None  #how ids dfall split back into train and test
         
         
         #Preprocess_EncodeCategoricalFeatures
@@ -50,8 +51,13 @@ class Analyser:
         self.one_hot_numeric_rounding = 2 #In case we want to deal with numeric variables as categories and encode them; This is the rounding factor
 
         
-    def readCSV(self, file_path):
-        f = pd.read_csv(file_path)
+    def loadData(self, file_path):
+        if file_path.endswith('.csv'):
+            f = pd.read_csv(file_path)
+        elif file_path.endswith('.json'):
+            f = pd.read_json(open(file_path))
+        else:
+            raise Exception('File Extension not supported')
         return f
         
            
@@ -78,7 +84,7 @@ class Analyser:
         #all_features = [x for x in train.columns if x not in ['id','loss']]
         
         
-        cols = ['FieldName', 'DataType', 'NonNACount','DistinctCount','IsUnique','MostComon','MostComonCount','MostComonPercentage'
+        cols = ['FieldName', 'DataType', 'NonNACount','DistinctCount','IsUnique','MostComon','MostComonCount','MostComonPc'
         , 'Min', 'Max', 'Avg', 'Std', 'Skewness']
         returndf = pd.DataFrame(columns=cols)
         
@@ -89,15 +95,18 @@ class Analyser:
             
             d['FieldName'] = col 
             d['DataType'] = data.dtype
-            d['NonNACount'] =  data.count() 
-            d['DistinctCount'] = data.nunique(dropna=False) 
-            d['IsUnique']  = d['DistinctCount'] == d['NonNACount'] 
-            
-            value_counts = data.value_counts()
-            d['MostComon'] = value_counts.index[0]
-            d['MostComonCount'] = value_counts.iloc[0]
-            d['MostComonPercentage'] = np.round(d['MostComonCount'] / np.float(d['NonNACount']),4)
-            
+            d['NonNACount'] =  data.count()
+            try:
+                d['DistinctCount'] = data.nunique(dropna=False) 
+                d['IsUnique']  = d['DistinctCount'] == d['NonNACount'] 
+                
+                value_counts = data.value_counts()
+                d['MostComon'] = value_counts.index[0]
+                d['MostComonCount'] = value_counts.iloc[0]
+                d['MostComonPc'] = np.round(d['MostComonCount'] / np.float(d['NonNACount']),4)
+            except:
+                #in case we have TypeError: unhashable type: 'list'
+                pass            
             
             if data.dtype in('int64','float64'):
                 d['Min']      =  round(min(data),4)
@@ -114,7 +123,7 @@ class Analyser:
 
 
 
-    ##TO DO: check that predictor_type is either continuous or discrite
+    ##TO DO: check that predictor_type is either continuous or discrete
     def SetUpTrainTest(self, train, predictor_name, predictor_type, id_field_name='id'):        
         #Name and type of the field to be predicted:        
         self.predictor_name = predictor_name        
@@ -374,22 +383,27 @@ class Analyser:
                     
         return dfall
         
-
-
-
-    def Preprocess_MergeTrainTest(self, train, test):
+    #this works when train has a continuous set if IDs like 0 to 10 and then test has a continuous set of ids, 11 to 25 for example
+    def Preprocess_MergeTrainTest(self, train, test, merge_splittype):        
 
         if self.predictor_name is None:
             raise TypeError("Execute the SetUpTrainTest method to use this feature")
-            return        
-
+            return
+    
+        if merge_splittype not in ('continuous', 'byindex'):
+            raise Exception('Merge split type must be continuous or byindex')
+        
+        self.merge_splittype = merge_splittype
         
         self.train_ids = train[self.id_field_name]
         self.test_ids = test[self.id_field_name]
         self.target = train[self.predictor_name]        
-        test[self.predictor_name] = 0
+        test[self.predictor_name] = '?' if self.predictor_type =='categorical' else 0
         
-        dfall = pd.concat((train, test)).reset_index(drop=True)
+        if merge_splittype ==  'continuous':
+            dfall = pd.concat((train, test)).reset_index(drop=True)
+        elif merge_splittype ==  'byindex':
+            dfall = pd.concat((train, test))
                 
         self.len_train_before = len(train)
         self.len_test_before = len(test)
@@ -555,20 +569,21 @@ class Analyser:
             raise TypeError("Execute the SetUpTrainTest method to use this feature")
             return     
         
-        train = dfall[:self.len_train_before]
-        test = dfall[self.len_train_before:]
-        
+        if self.merge_splittype == 'continuous':
+            train = dfall[:self.len_train_before]
+            test = dfall[self.len_train_before:]
+        elif self.merge_splittype == 'byindex':
+            train = dfall[dfall.index.isin(self.train_ids)]
+            test = dfall[dfall.index.isin(self.test_ids)]  
+        else:
+            raise Exception('Merge split type must be continuous or byindex')      
         test = test.drop([self.predictor_name],axis=1)
         
         #Check the Lenght is still the same
         assert(self.len_train_before == len(train))
         assert(self.len_test_before == len(test))
-        
-        return train, test
     
-
-
- 
+        return train, test
 
     def Utils_SaveObjects(self, save_path, train, test, da
                                    , save_file_train = 'train.pkl'
@@ -576,25 +591,23 @@ class Analyser:
                                    , DataSetAnalyserObj = 'daObject.pkl'):  
         
 
-        pickle.dump(train, open(save_path + save_file_train, 'wb'))
-        pickle.dump(test , open(save_path + save_file_test, 'wb'))
-        pickle.dump(da , open(save_path + DataSetAnalyserObj, 'wb'))
+        pickle.dump(train, open(os.path.join(save_path, save_file_train), 'wb'))
+        pickle.dump(test , open(os.path.join(save_path, save_file_test), 'wb'))
+        pickle.dump(da   , open(os.path.join(save_path, DataSetAnalyserObj), 'wb'))
         
-  
-      
     def Utils_LoadObjects(self, save_path, save_file_train = 'train.pkl'
                                    , save_file_test = 'test.pkl'
                                    , DataSetAnalyserObj = 'daObject.pkl'):    
                 
-        train_path = save_path+save_file_train
+        train_path = os.path.join(save_path, save_file_train)
         print 'Loading training pickle from:',train_path
         train = pickle.load(open(train_path , 'rb'))
         
-        test_path = save_path+save_file_test
+        test_path = os.path.join(save_path, save_file_test)
         print 'Loading testing  pickle from:',test_path
         test  = pickle.load(open(test_path, 'rb'))
         
-        da  = pickle.load(open(save_path+DataSetAnalyserObj, 'rb'))
+        da  = pickle.load(open(os.path.join(save_path, DataSetAnalyserObj), 'rb'))
         
         return train, test, da
         

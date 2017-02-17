@@ -127,7 +127,7 @@ class Analyser:
     def SetUpTrainTest(self, train, predictor_name, predictor_type, id_field_name='id'):        
         #Name and type of the field to be predicted:        
         self.predictor_name = predictor_name        
-        self.predictor_type = predictor_type
+        self.predictor_type = predictor_type        
         
         #Name of the unique identifyier on the dataset, not usefull for prediction
         self.id_field_name = id_field_name

@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os 
 import pickle
-
+import unicodedata
 
 from scipy.stats import norm
 from scipy import stats
@@ -13,8 +13,6 @@ import seaborn as sns
 #from DataSetEncoder import DataSetEncoder 
 
 import operator
-
-
 
 class Analyser:
 
@@ -51,16 +49,29 @@ class Analyser:
         self.one_hot_numeric_rounding = 2 #In case we want to deal with numeric variables as categories and encode them; This is the rounding factor
 
         
-    def loadData(self, file_path):
+    def loadData(self, file_path, nrows=None):
         if file_path.endswith('.csv'):
-            f = pd.read_csv(file_path)
+            f = pd.read_csv(file_path,nrows=nrows)
         elif file_path.endswith('.json'):
             f = pd.read_json(open(file_path))
         else:
             raise Exception('File Extension not supported')
         return f
-        
-           
+ 
+    
+#specify columns and data types:       
+# train = pd.read_csv(train_file,
+#                    usecols=["date_time", "srch_ci", "srch_co", "site_name", "user_id", "is_booking", "user_location_country", 
+#                             "user_location_region", "user_location_city", "hotel_market", "hotel_country", "orig_destination_distance", 
+#                             "srch_destination_id", "srch_adults_cnt", "srch_children_cnt", "srch_rm_cnt", "srch_destination_type_id", "hotel_cluster"],
+#                    dtype={'date_time':np.str_, "srch_ci":np.str_, "srch_co":np.str_, 'site_name':np.int8, 'user_id':np.int32, "is_booking":np.float64,  'user_location_country':np.int16
+#                            ,'user_location_region':np.int16 , 'user_location_city':np.int32, "hotel_market":np.int32, "hotel_country":np.int32, "orig_destination_distance":np.float64, 
+#					"srch_adults_cnt":np.int8, "srch_children_cnt":np.int8, "srch_rm_cnt":np.int8, "srch_destination_type_id":np.int8, 
+#                             "hotel_cluster":np.int32
+#                           }
+#                     )
+
+         
     
     def getBasicInfo(self, df):
         columns = ['Property', 'Value']
@@ -137,7 +148,6 @@ class Analyser:
         self.cat_features = [x for x in train.select_dtypes(include=['object']).columns if x not in [self.id_field_name, self.predictor_name]]
         #dates?
         self.num_features = [x for x in train.select_dtypes(exclude=['object']).columns if x not in [self.id_field_name, self.predictor_name]]
-
             
     #add features to plot in case is a new feature?
     def AnalyseFeatures_PlotBasic(self, train, test=None, features_to_plot= None, normed = 0):
@@ -264,12 +274,10 @@ class Analyser:
     def AnalyseFeatures_TrainHeatMap (self, train, features_to_plot= None):
         
         if features_to_plot is not None and self._checkFeaturesToPlotIsList(features_to_plot):               
-            num_features = [x for x in self.all_features if x in features_to_plot]
+            #num_features = [x for x in self.all_features if x in features_to_plot]
+            num_features = features_to_plot
         else:
             num_features =  list(self.num_features)  
-        
-
-        num_features.append('loss')
         
         
         correlationMatrix = train[num_features].corr().abs()
@@ -279,6 +287,7 @@ class Analyser:
         # Mask unimportant features
         sns.heatmap(correlationMatrix, mask=correlationMatrix < 1, cbar=False)
         plt.show()
+        return correlationMatrix
 
 
 
@@ -611,6 +620,11 @@ class Analyser:
         
         return train, test, da
         
+    def Utils_strip_accents(self,s):
+       if isinstance(s, str):
+           return s
+       else:
+           return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
 
 
     def Utils_XGBFeatureImportance(self, features, model, save_path, save_fig_name='feature_importance_xgb'):
